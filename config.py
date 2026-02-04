@@ -18,6 +18,7 @@ class Config:
 
     # Data caching
     CACHE_DIR = os.path.join(os.path.dirname(__file__), 'data')
+    DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
     CACHE_EXPIRY_HOURS = 24
 
     # API settings
