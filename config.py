@@ -14,7 +14,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
     # Ottoneu settings
-    OTTONEU_LEAGUE_ID = os.environ.get('OTTONEU_LEAGUE_ID', '')
+    OTTONEU_LEAGUE_ID = os.environ.get('OTTONEU_LEAGUE_ID', '1395')
 
     # Data caching
     CACHE_DIR = os.path.join(os.path.dirname(__file__), 'data')
