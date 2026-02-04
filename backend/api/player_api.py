@@ -451,3 +451,313 @@ def get_seasons():
         'previous_seasons': previous,
         'all_seasons': previous + [current]
     })
+
+
+# -----------------------------------------------------------------------------
+# Statcast Endpoints
+# -----------------------------------------------------------------------------
+
+def get_savant_client():
+    """Get Baseball Savant client instance."""
+    from backend.data_sources.savant import SavantClient
+    return SavantClient()
+
+
+@bp.route('/statcast/leaderboard', methods=['GET'])
+def get_statcast_leaderboard():
+    """
+    Get Statcast exit velocity and barrel leaderboard.
+
+    Query params:
+        season: Year (default: current)
+        type: 'batter' or 'pitcher' (default: 'batter')
+        min_pa: Minimum plate appearances (default: 50)
+        limit: Max results (default: 100)
+    """
+    try:
+        client = get_savant_client()
+        season = request.args.get('season', client.get_current_season(), type=int)
+        player_type = request.args.get('type', 'batter')
+        min_pa = request.args.get('min_pa', 50, type=int)
+        limit = request.args.get('limit', 100, type=int)
+
+        leaderboard = client.get_statcast_leaderboard(season, player_type, min_pa)
+
+        return jsonify({
+            'season': season,
+            'type': player_type,
+            'min_pa': min_pa,
+            'leaderboard': df_to_json(leaderboard, limit=limit),
+            'count': len(leaderboard),
+            'showing': min(limit, len(leaderboard))
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch Statcast leaderboard: {str(e)}'}), 500
+
+
+@bp.route('/statcast/expected', methods=['GET'])
+def get_expected_stats_leaderboard():
+    """
+    Get expected stats (xwOBA, xBA, xSLG) leaderboard.
+
+    Query params:
+        season: Year (default: current)
+        type: 'batter' or 'pitcher' (default: 'batter')
+        min_pa: Minimum plate appearances (default: 50)
+        limit: Max results (default: 100)
+    """
+    try:
+        client = get_savant_client()
+        season = request.args.get('season', client.get_current_season(), type=int)
+        player_type = request.args.get('type', 'batter')
+        min_pa = request.args.get('min_pa', 50, type=int)
+        limit = request.args.get('limit', 100, type=int)
+
+        leaderboard = client.get_expected_stats_leaderboard(season, player_type, min_pa)
+
+        return jsonify({
+            'season': season,
+            'type': player_type,
+            'min_pa': min_pa,
+            'leaderboard': df_to_json(leaderboard, limit=limit),
+            'count': len(leaderboard),
+            'showing': min(limit, len(leaderboard))
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch expected stats: {str(e)}'}), 500
+
+
+@bp.route('/statcast/sprint-speed', methods=['GET'])
+def get_sprint_speed_leaderboard():
+    """
+    Get sprint speed leaderboard.
+
+    Query params:
+        season: Year (default: current)
+        min_opps: Minimum opportunities (default: 10)
+        limit: Max results (default: 100)
+    """
+    try:
+        client = get_savant_client()
+        season = request.args.get('season', client.get_current_season(), type=int)
+        min_opps = request.args.get('min_opps', 10, type=int)
+        limit = request.args.get('limit', 100, type=int)
+
+        leaderboard = client.get_sprint_speed_leaderboard(season, min_opps)
+
+        return jsonify({
+            'season': season,
+            'min_opps': min_opps,
+            'leaderboard': df_to_json(leaderboard, limit=limit),
+            'count': len(leaderboard),
+            'showing': min(limit, len(leaderboard))
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch sprint speed: {str(e)}'}), 500
+
+
+@bp.route('/statcast/pitch-arsenal', methods=['GET'])
+def get_pitch_arsenal_leaderboard():
+    """
+    Get pitch arsenal leaderboard for a specific pitch type.
+
+    Query params:
+        season: Year (default: current)
+        pitch_type: Pitch type code (FF, SL, CH, etc.) (default: FF)
+        min_pitches: Minimum pitches thrown (default: 100)
+        limit: Max results (default: 100)
+    """
+    try:
+        client = get_savant_client()
+        season = request.args.get('season', client.get_current_season(), type=int)
+        pitch_type = request.args.get('pitch_type', 'FF')
+        min_pitches = request.args.get('min_pitches', 100, type=int)
+        limit = request.args.get('limit', 100, type=int)
+
+        leaderboard = client.get_pitch_arsenal_leaderboard(season, pitch_type, min_pitches)
+
+        return jsonify({
+            'season': season,
+            'pitch_type': pitch_type,
+            'min_pitches': min_pitches,
+            'leaderboard': df_to_json(leaderboard, limit=limit),
+            'count': len(leaderboard),
+            'showing': min(limit, len(leaderboard))
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch pitch arsenal: {str(e)}'}), 500
+
+
+@bp.route('/<int:player_id>/statcast', methods=['GET'])
+def get_player_statcast(player_id):
+    """
+    Get comprehensive Statcast summary for a player (by MLBAM ID).
+
+    Query params:
+        season: Year (default: current)
+        type: 'batter' or 'pitcher' (default: 'batter')
+    """
+    try:
+        client = get_savant_client()
+        season = request.args.get('season', client.get_current_season(), type=int)
+        player_type = request.args.get('type', 'batter')
+
+        summary = client.get_player_summary(player_id, season, player_type)
+
+        return jsonify(summary)
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch Statcast data: {str(e)}'}), 500
+
+
+@bp.route('/<int:player_id>/statcast/expected', methods=['GET'])
+def get_player_expected_stats(player_id):
+    """
+    Get expected stats for a specific player (by MLBAM ID).
+
+    Query params:
+        season: Year (default: current)
+        type: 'batter' or 'pitcher' (default: 'batter')
+    """
+    try:
+        client = get_savant_client()
+        season = request.args.get('season', client.get_current_season(), type=int)
+        player_type = request.args.get('type', 'batter')
+
+        if player_type == 'batter':
+            stats = client.get_expected_stats(player_id, season)
+        else:
+            stats = client.get_pitcher_expected_stats(player_id, season)
+
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch expected stats: {str(e)}'}), 500
+
+
+@bp.route('/<int:player_id>/statcast/batted-ball', methods=['GET'])
+def get_player_batted_ball(player_id):
+    """
+    Get batted ball profile for a batter (by MLBAM ID).
+
+    Query params:
+        season: Year (default: current)
+    """
+    try:
+        client = get_savant_client()
+        season = request.args.get('season', client.get_current_season(), type=int)
+
+        profile = client.get_batted_ball_profile(player_id, season)
+
+        return jsonify(profile)
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch batted ball profile: {str(e)}'}), 500
+
+
+@bp.route('/<int:player_id>/statcast/discipline', methods=['GET'])
+def get_player_discipline(player_id):
+    """
+    Get plate discipline metrics for a batter (by MLBAM ID).
+
+    Query params:
+        season: Year (default: current)
+    """
+    try:
+        client = get_savant_client()
+        season = request.args.get('season', client.get_current_season(), type=int)
+
+        discipline = client.get_plate_discipline(player_id, season)
+
+        return jsonify(discipline)
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch plate discipline: {str(e)}'}), 500
+
+
+@bp.route('/<int:player_id>/statcast/arsenal', methods=['GET'])
+def get_player_arsenal(player_id):
+    """
+    Get pitch arsenal breakdown for a pitcher (by MLBAM ID).
+
+    Query params:
+        season: Year (default: current)
+    """
+    try:
+        client = get_savant_client()
+        season = request.args.get('season', client.get_current_season(), type=int)
+
+        arsenal = client.get_pitch_arsenal(player_id, season)
+
+        return jsonify({
+            'player_id': player_id,
+            'season': season,
+            'pitches': df_to_json(arsenal)
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch pitch arsenal: {str(e)}'}), 500
+
+
+@bp.route('/<int:player_id>/statcast/rolling', methods=['GET'])
+def get_player_rolling_stats(player_id):
+    """
+    Get rolling Statcast stats for a player (by MLBAM ID).
+
+    Query params:
+        season: Year (default: current)
+        window: Rolling window size in batted balls (default: 50)
+        type: 'batter' or 'pitcher' (default: 'batter')
+    """
+    try:
+        client = get_savant_client()
+        season = request.args.get('season', client.get_current_season(), type=int)
+        window = request.args.get('window', 50, type=int)
+        player_type = request.args.get('type', 'batter')
+
+        rolling = client.get_rolling_stats(player_id, season, window, player_type)
+
+        return jsonify({
+            'player_id': player_id,
+            'season': season,
+            'window': window,
+            'rolling_stats': df_to_json(rolling)
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch rolling stats: {str(e)}'}), 500
+
+
+@bp.route('/statcast/lookup', methods=['GET'])
+def lookup_player_mlbam_id():
+    """
+    Look up a player's MLBAM ID by name.
+
+    Query params:
+        name: Full player name (e.g., "Mike Trout")
+        -- OR --
+        first: First name
+        last: Last name
+    """
+    try:
+        client = get_savant_client()
+
+        full_name = request.args.get('name', '')
+        first_name = request.args.get('first', '')
+        last_name = request.args.get('last', '')
+
+        if full_name:
+            player_id = client.lookup_player_by_name(full_name)
+        elif first_name and last_name:
+            player_id = client.lookup_player_id(last_name, first_name)
+        else:
+            return jsonify({'error': 'Provide name or first+last parameters'}), 400
+
+        if player_id:
+            return jsonify({
+                'name': full_name or f"{first_name} {last_name}",
+                'mlbam_id': player_id
+            })
+        else:
+            return jsonify({
+                'name': full_name or f"{first_name} {last_name}",
+                'mlbam_id': None,
+                'message': 'Player not found'
+            }), 404
+
+    except Exception as e:
+        return jsonify({'error': f'Lookup failed: {str(e)}'}), 500
