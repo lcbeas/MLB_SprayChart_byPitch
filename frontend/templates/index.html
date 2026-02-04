@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ottoneu Roster Tool</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1>Ottoneu Roster Tool</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#" class="active" data-section="dashboard">Dashboard</a></li>
+                <li><a href="#" data-section="players">Players</a></li>
+                <li><a href="#" data-section="roster">My Roster</a></li>
+                <li><a href="#" data-section="free-agents">Free Agents</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section active">
+            <h2>Dashboard</h2>
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>Quick Stats</h3>
+                    <div id="quick-stats">
+                        <p>Configure your league ID in settings to see your roster data.</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Top Free Agents</h3>
+                    <div id="top-fa">
+                        <p>Loading...</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Recent Activity</h3>
+                    <div id="recent-activity">
+                        <p>No recent activity</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Players Section -->
+        <section id="players" class="section">
+            <h2>Player Search</h2>
+            <div class="search-bar">
+                <input type="text" id="player-search" placeholder="Search players...">
+                <button id="search-btn">Search</button>
+            </div>
+            <div class="filters">
+                <select id="position-filter">
+                    <option value="">All Positions</option>
+                    <option value="C">C</option>
+                    <option value="1B">1B</option>
+                    <option value="2B">2B</option>
+                    <option value="SS">SS</option>
+                    <option value="3B">3B</option>
+                    <option value="OF">OF</option>
+                    <option value="SP">SP</option>
+                    <option value="RP">RP</option>
+                </select>
+            </div>
+            <div id="player-results" class="results-table">
+                <!-- Player results will be populated here -->
+            </div>
+        </section>
+
+        <!-- Roster Section -->
+        <section id="roster" class="section">
+            <h2>My Roster</h2>
+            <div id="roster-summary" class="card">
+                <p>Configure your league to view your roster.</p>
+            </div>
+            <div id="roster-table">
+                <!-- Roster table will be populated here -->
+            </div>
+        </section>
+
+        <!-- Free Agents Section -->
+        <section id="free-agents" class="section">
+            <h2>Free Agents</h2>
+            <div class="filters">
+                <select id="fa-position-filter">
+                    <option value="">All Positions</option>
+                    <option value="C">C</option>
+                    <option value="1B">1B</option>
+                    <option value="2B">2B</option>
+                    <option value="SS">SS</option>
+                    <option value="3B">3B</option>
+                    <option value="OF">OF</option>
+                    <option value="SP">SP</option>
+                    <option value="RP">RP</option>
+                </select>
+                <select id="fa-sort">
+                    <option value="value">Sort by Value</option>
+                    <option value="name">Sort by Name</option>
+                    <option value="position">Sort by Position</option>
+                </select>
+            </div>
+            <div id="fa-results" class="results-table">
+                <!-- Free agent results will be populated here -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Data from Fangraphs, Ottoneu, and Baseball Savant</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
