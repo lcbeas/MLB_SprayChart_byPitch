@@ -11,82 +11,412 @@
         <nav class="navbar">
             <div class="nav-brand">
                 <h1>Ottoneu Roster Tool</h1>
+                <span class="league-badge">League #<span id="league-id">1395</span></span>
             </div>
-            <ul class="nav-links">
-                <li><a href="#" class="active" data-section="dashboard">Dashboard</a></li>
-                <li><a href="#" data-section="players">Players</a></li>
-                <li><a href="#" data-section="roster">My Roster</a></li>
-                <li><a href="#" data-section="free-agents">Free Agents</a></li>
-            </ul>
+            <div class="nav-controls">
+                <label for="team-id-input">Team ID:</label>
+                <input type="number" id="team-id-input" placeholder="Your Team ID" class="team-input">
+                <button id="set-team-btn" class="btn-small">Set</button>
+            </div>
+        </nav>
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="roster-optimizer">Roster Optimizer</button>
+            <button class="tab-btn" data-tab="lineup-optimizer">Lineup Optimizer</button>
+            <button class="tab-btn" data-tab="trade-analyzer">Trade Analyzer</button>
+            <button class="tab-btn" data-tab="player-value">Player Value</button>
+            <button class="tab-btn" data-tab="free-agents">Free Agents</button>
         </nav>
     </header>
 
     <main class="container">
-        <!-- Dashboard Section -->
-        <section id="dashboard" class="section active">
-            <h2>Dashboard</h2>
-            <div class="dashboard-grid">
-                <div class="card">
-                    <h3>Quick Stats</h3>
-                    <div id="quick-stats">
-                        <p>Configure your league ID in settings to see your roster data.</p>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3>Top Free Agents</h3>
-                    <div id="top-fa">
-                        <p>Loading...</p>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3>Recent Activity</h3>
-                    <div id="recent-activity">
-                        <p>No recent activity</p>
-                    </div>
-                </div>
+        <!-- Roster Optimizer Tab -->
+        <section id="roster-optimizer" class="tab-content active">
+            <div class="section-header">
+                <h2>Roster Optimizer</h2>
+                <p>Analyze your roster compared to the league and identify opportunities</p>
             </div>
-        </section>
 
-        <!-- Players Section -->
-        <section id="players" class="section">
-            <h2>Player Search</h2>
-            <div class="search-bar">
-                <input type="text" id="player-search" placeholder="Search players...">
-                <button id="search-btn">Search</button>
-            </div>
-            <div class="filters">
-                <select id="position-filter">
-                    <option value="">All Positions</option>
-                    <option value="C">C</option>
-                    <option value="1B">1B</option>
-                    <option value="2B">2B</option>
-                    <option value="SS">SS</option>
-                    <option value="3B">3B</option>
-                    <option value="OF">OF</option>
-                    <option value="SP">SP</option>
-                    <option value="RP">RP</option>
+            <div class="action-bar">
+                <button id="analyze-roster-btn" class="btn-primary">Analyze My Roster</button>
+                <select id="compare-to-select">
+                    <option value="league">Compare to League</option>
+                    <option value="top_teams">Compare to Top Teams</option>
                 </select>
             </div>
-            <div id="player-results" class="results-table">
-                <!-- Player results will be populated here -->
+
+            <div id="roster-analysis" class="analysis-container">
+                <div class="placeholder-message">
+                    <p>Enter your Team ID above and click "Analyze My Roster" to see your roster analysis</p>
+                </div>
+            </div>
+
+            <!-- Roster Score Card -->
+            <div id="roster-score-section" class="hidden">
+                <div class="score-card">
+                    <div class="overall-grade">
+                        <span class="grade-label">Overall Grade</span>
+                        <span id="roster-grade" class="grade">-</span>
+                    </div>
+                    <div class="score-details">
+                        <div class="score-item">
+                            <span class="label">Batting</span>
+                            <span id="batting-score" class="value">-</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="label">Pitching</span>
+                            <span id="pitching-score" class="value">-</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="label">Total Value</span>
+                            <span id="total-value" class="value">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Positional Analysis -->
+            <div id="positional-analysis" class="hidden">
+                <h3>Positional Breakdown</h3>
+                <div class="position-grid" id="position-grid">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+
+            <!-- Buy Low / Sell High -->
+            <div id="value-opportunities" class="hidden">
+                <div class="opportunity-section">
+                    <h3>Buy Low Candidates</h3>
+                    <div id="buy-low-list" class="player-list">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+                <div class="opportunity-section">
+                    <h3>Sell High Candidates</h3>
+                    <div id="sell-high-list" class="player-list">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div id="recommendations-section" class="hidden">
+                <h3>Recommendations</h3>
+                <ul id="recommendations-list" class="recommendations">
+                    <!-- Dynamically populated -->
+                </ul>
             </div>
         </section>
 
-        <!-- Roster Section -->
-        <section id="roster" class="section">
-            <h2>My Roster</h2>
-            <div id="roster-summary" class="card">
-                <p>Configure your league to view your roster.</p>
+        <!-- Lineup Optimizer Tab -->
+        <section id="lineup-optimizer" class="tab-content">
+            <div class="section-header">
+                <h2>Daily Lineup Optimizer</h2>
+                <p>Optimize your starting lineup based on matchups and projections</p>
             </div>
-            <div id="roster-table">
-                <!-- Roster table will be populated here -->
+
+            <div class="action-bar">
+                <button id="optimize-lineup-btn" class="btn-primary">Optimize Lineup</button>
+                <input type="date" id="lineup-date" class="date-input">
+            </div>
+
+            <div id="lineup-container" class="lineup-display">
+                <div class="placeholder-message">
+                    <p>Click "Optimize Lineup" to generate your optimal starting lineup</p>
+                </div>
+            </div>
+
+            <!-- Batting Lineup -->
+            <div id="batting-lineup-section" class="hidden">
+                <h3>Batting Lineup</h3>
+                <div class="expected-points">
+                    Expected Points: <span id="expected-batting-pts">-</span>
+                </div>
+                <table id="batting-lineup-table" class="lineup-table">
+                    <thead>
+                        <tr>
+                            <th>Slot</th>
+                            <th>Player</th>
+                            <th>Position</th>
+                            <th>Matchup</th>
+                            <th>Exp. Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dynamically populated -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pitching Lineup -->
+            <div id="pitching-lineup-section" class="hidden">
+                <h3>Pitching Lineup</h3>
+                <div class="expected-points">
+                    Expected Points: <span id="expected-pitching-pts">-</span>
+                </div>
+                <table id="pitching-lineup-table" class="lineup-table">
+                    <thead>
+                        <tr>
+                            <th>Slot</th>
+                            <th>Player</th>
+                            <th>Remaining IP</th>
+                            <th>Exp. Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dynamically populated -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Inning Limits -->
+            <div id="inning-limits-section" class="hidden">
+                <h3>Inning Limit Tracker</h3>
+                <div class="inning-info">
+                    <div class="info-item">
+                        <span class="label">League Limit</span>
+                        <span id="league-ip-limit">1500 IP</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Used</span>
+                        <span id="used-ip">- IP</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Remaining</span>
+                        <span id="remaining-ip">- IP</span>
+                    </div>
+                </div>
+                <div id="pitcher-limits-list" class="pitcher-limits">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+
+            <!-- Lineup Warnings -->
+            <div id="lineup-warnings" class="hidden">
+                <h4>Warnings</h4>
+                <ul id="warnings-list" class="warnings">
+                    <!-- Dynamically populated -->
+                </ul>
             </div>
         </section>
 
-        <!-- Free Agents Section -->
-        <section id="free-agents" class="section">
-            <h2>Free Agents</h2>
-            <div class="filters">
+        <!-- Trade Analyzer Tab -->
+        <section id="trade-analyzer" class="tab-content">
+            <div class="section-header">
+                <h2>Trade Analyzer</h2>
+                <p>Evaluate trades, find targets, and discover fair trade packages</p>
+            </div>
+
+            <div class="trade-tabs">
+                <button class="trade-tab-btn active" data-trade-tab="evaluate">Evaluate Trade</button>
+                <button class="trade-tab-btn" data-trade-tab="targets">Find Targets</button>
+                <button class="trade-tab-btn" data-trade-tab="suggestions">Suggested Trades</button>
+            </div>
+
+            <!-- Evaluate Trade Panel -->
+            <div id="evaluate-trade-panel" class="trade-panel active">
+                <div class="trade-builder">
+                    <div class="trade-side">
+                        <h4>You Give</h4>
+                        <div id="give-players" class="trade-player-list">
+                            <!-- Dynamically populated -->
+                        </div>
+                        <input type="text" id="give-player-search" placeholder="Search player to add..." class="player-search">
+                        <div id="give-search-results" class="search-dropdown hidden"></div>
+                    </div>
+                    <div class="trade-arrow">
+                        <span>&#8644;</span>
+                    </div>
+                    <div class="trade-side">
+                        <h4>You Get</h4>
+                        <div id="get-players" class="trade-player-list">
+                            <!-- Dynamically populated -->
+                        </div>
+                        <input type="text" id="get-player-search" placeholder="Search player to add..." class="player-search">
+                        <div id="get-search-results" class="search-dropdown hidden"></div>
+                    </div>
+                </div>
+                <button id="evaluate-trade-btn" class="btn-primary">Evaluate Trade</button>
+
+                <div id="trade-evaluation" class="hidden">
+                    <div class="trade-result">
+                        <div class="fairness-meter">
+                            <span class="label">Trade Fairness</span>
+                            <div class="meter-bar">
+                                <div id="fairness-indicator" class="indicator"></div>
+                            </div>
+                            <span id="fairness-label" class="fairness-text">-</span>
+                        </div>
+                        <div class="trade-values">
+                            <div class="value-box">
+                                <span class="label">Your Value</span>
+                                <span id="your-trade-value" class="value">$0</span>
+                            </div>
+                            <div class="value-box">
+                                <span class="label">Their Value</span>
+                                <span id="their-trade-value" class="value">$0</span>
+                            </div>
+                            <div class="value-box highlight">
+                                <span class="label">Net Value</span>
+                                <span id="net-trade-value" class="value">$0</span>
+                            </div>
+                        </div>
+                        <div id="trade-recommendation" class="recommendation-box">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Find Targets Panel -->
+            <div id="find-targets-panel" class="trade-panel hidden">
+                <div class="filter-bar">
+                    <select id="target-position">
+                        <option value="">All Positions</option>
+                        <option value="C">C</option>
+                        <option value="1B">1B</option>
+                        <option value="2B">2B</option>
+                        <option value="SS">SS</option>
+                        <option value="3B">3B</option>
+                        <option value="OF">OF</option>
+                        <option value="SP">SP</option>
+                        <option value="RP">RP</option>
+                    </select>
+                    <input type="number" id="max-salary" placeholder="Max Salary" min="1" max="100">
+                    <button id="find-targets-btn" class="btn-primary">Find Targets</button>
+                </div>
+                <div id="trade-targets-list" class="targets-container">
+                    <div class="placeholder-message">
+                        <p>Select filters and click "Find Targets" to discover trade targets</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suggested Trades Panel -->
+            <div id="suggestions-panel" class="trade-panel hidden">
+                <div class="filter-bar">
+                    <select id="improve-position">
+                        <option value="">Any Position</option>
+                        <option value="C">Improve C</option>
+                        <option value="1B">Improve 1B</option>
+                        <option value="2B">Improve 2B</option>
+                        <option value="SS">Improve SS</option>
+                        <option value="3B">Improve 3B</option>
+                        <option value="OF">Improve OF</option>
+                        <option value="SP">Improve SP</option>
+                        <option value="RP">Improve RP</option>
+                    </select>
+                    <button id="get-suggestions-btn" class="btn-primary">Get Trade Suggestions</button>
+                </div>
+                <div id="trade-suggestions-list" class="suggestions-container">
+                    <div class="placeholder-message">
+                        <p>Click "Get Trade Suggestions" to see recommended trades</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Player Value Tab -->
+        <section id="player-value" class="tab-content">
+            <div class="section-header">
+                <h2>Player Value Tool</h2>
+                <p>Get ML-powered value predictions and bid recommendations</p>
+            </div>
+
+            <div class="search-section">
+                <div class="search-bar">
+                    <input type="text" id="value-player-search" placeholder="Search for a player...">
+                    <select id="player-type-select">
+                        <option value="batter">Batter</option>
+                        <option value="pitcher">Pitcher</option>
+                    </select>
+                    <button id="get-value-btn" class="btn-primary">Get Value</button>
+                </div>
+            </div>
+
+            <div id="player-value-result" class="hidden">
+                <div class="value-card">
+                    <div class="player-header">
+                        <h3 id="value-player-name">Player Name</h3>
+                        <span id="value-player-type" class="player-type-badge">Batter</span>
+                    </div>
+                    <div class="value-display">
+                        <div class="main-value">
+                            <span class="label">Predicted Value</span>
+                            <span id="predicted-value" class="value-large">$0</span>
+                        </div>
+                        <div class="confidence-display">
+                            <span class="label">Confidence</span>
+                            <div class="confidence-bar">
+                                <div id="confidence-fill" class="fill"></div>
+                            </div>
+                            <span id="confidence-pct">0%</span>
+                        </div>
+                    </div>
+                    <div class="model-breakdown">
+                        <h4>Model Predictions</h4>
+                        <div class="model-values">
+                            <div class="model-item">
+                                <span class="label">GBM</span>
+                                <span id="gbm-value">-</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="label">Random Forest</span>
+                                <span id="rf-value">-</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="label">Ridge</span>
+                                <span id="ridge-value">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bid Recommendation Section -->
+            <div id="bid-section" class="hidden">
+                <h3>Bid Recommendation</h3>
+                <div class="bid-inputs">
+                    <div class="input-group">
+                        <label for="current-bid">Current Bid</label>
+                        <input type="number" id="current-bid" placeholder="$0" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label for="budget-remaining">Your Budget</label>
+                        <input type="number" id="budget-remaining" placeholder="$400" value="400" min="0">
+                    </div>
+                    <button id="get-bid-rec-btn" class="btn-secondary">Get Recommendation</button>
+                </div>
+                <div id="bid-recommendation" class="hidden">
+                    <div class="bid-result">
+                        <div class="recommendation-header">
+                            <span id="bid-verdict" class="verdict">-</span>
+                        </div>
+                        <div class="bid-details">
+                            <div class="detail-item">
+                                <span class="label">Max Recommended Bid</span>
+                                <span id="max-bid" class="value">$0</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Adjusted Value</span>
+                                <span id="adjusted-value" class="value">$0</span>
+                            </div>
+                        </div>
+                        <ul id="bid-reasoning" class="reasoning-list">
+                            <!-- Dynamically populated -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Free Agents Tab -->
+        <section id="free-agents" class="tab-content">
+            <div class="section-header">
+                <h2>Free Agents</h2>
+                <p>Browse available free agents sorted by value</p>
+            </div>
+
+            <div class="filter-bar">
                 <select id="fa-position-filter">
                     <option value="">All Positions</option>
                     <option value="C">C</option>
@@ -98,21 +428,29 @@
                     <option value="SP">SP</option>
                     <option value="RP">RP</option>
                 </select>
-                <select id="fa-sort">
-                    <option value="value">Sort by Value</option>
-                    <option value="name">Sort by Name</option>
-                    <option value="position">Sort by Position</option>
-                </select>
+                <button id="load-fa-btn" class="btn-primary">Load Free Agents</button>
             </div>
+
             <div id="fa-results" class="results-table">
-                <!-- Free agent results will be populated here -->
+                <div class="placeholder-message">
+                    <p>Select a position filter and click "Load Free Agents"</p>
+                </div>
             </div>
         </section>
     </main>
 
     <footer>
-        <p>Data from Fangraphs, Ottoneu, and Baseball Savant</p>
+        <p>Data from Fangraphs, Ottoneu, and Baseball Savant | ML-powered analysis</p>
     </footer>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+        <span>Loading...</span>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
