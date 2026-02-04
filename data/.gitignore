@@ -1,0 +1,11 @@
+# Ignore generated model files and training data
+# These are created by running scripts/train_models.py
+
+# Trained model files
+models/*.pkl
+models/*.json
+!models/.gitkeep
+
+# Training data exports
+training/*.csv
+!training/.gitkeep
