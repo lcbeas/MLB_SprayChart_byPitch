@@ -7,8 +7,10 @@
 // =============================================================================
 const state = {
     teamId: localStorage.getItem('teamId') || null,
-    leagueId: '1395',
+    teamName: localStorage.getItem('teamName') || null,
+    leagueId: localStorage.getItem('leagueId') || '1395',
     currentPlayerId: null,
+    teams: [],
     tradePlayers: {
         give: [],
         get: []
@@ -23,6 +25,10 @@ const api = {
 
     async get(endpoint, params = {}) {
         const url = new URL(`${this.baseUrl}${endpoint}`, window.location.origin);
+        // Always include league_id in requests
+        if (!params.league_id && state.leagueId) {
+            params.league_id = state.leagueId;
+        }
         Object.entries(params).forEach(([key, value]) => {
             if (value !== null && value !== undefined && value !== '') {
                 url.searchParams.append(key, value);
@@ -64,6 +70,15 @@ const api = {
         } finally {
             hideLoading();
         }
+    },
+
+    // League endpoints
+    getTeams(leagueId) {
+        return this.get('/league/teams', { league_id: leagueId });
+    },
+
+    getLeagueInfo() {
+        return this.get('/league/info');
     },
 
     // Analysis endpoints
@@ -226,24 +241,97 @@ function initTabNavigation() {
 }
 
 // =============================================================================
-// Team ID Management
+// League & Team Management
 // =============================================================================
-function initTeamIdControls() {
-    const teamIdInput = document.getElementById('team-id-input');
-    const setTeamBtn = document.getElementById('set-team-btn');
+function initLeagueTeamControls() {
+    const leagueInput = document.getElementById('league-id-input');
+    const refreshBtn = document.getElementById('refresh-league-btn');
+    const teamSelect = document.getElementById('team-select');
 
-    if (state.teamId) {
-        teamIdInput.value = state.teamId;
+    // Set initial values from state
+    if (state.leagueId) {
+        leagueInput.value = state.leagueId;
     }
 
-    setTeamBtn.addEventListener('click', () => {
-        const teamId = teamIdInput.value.trim();
-        if (teamId) {
-            state.teamId = teamId;
-            localStorage.setItem('teamId', teamId);
-            showToast('Team ID saved!', 'success');
+    // Load teams on page load
+    loadTeams();
+
+    // Refresh league button
+    refreshBtn.addEventListener('click', async () => {
+        const leagueId = leagueInput.value.trim();
+        if (!leagueId) {
+            showToast('Please enter a league ID', 'error');
+            return;
+        }
+
+        state.leagueId = leagueId;
+        localStorage.setItem('leagueId', leagueId);
+
+        // Clear current team selection
+        state.teamId = null;
+        state.teamName = null;
+        localStorage.removeItem('teamId');
+        localStorage.removeItem('teamName');
+
+        await loadTeams();
+        showToast(`Loaded league ${leagueId}`, 'success');
+    });
+
+    // Team selection change
+    teamSelect.addEventListener('change', () => {
+        const selectedOption = teamSelect.options[teamSelect.selectedIndex];
+        if (selectedOption.value) {
+            state.teamId = selectedOption.value;
+            state.teamName = selectedOption.textContent;
+            localStorage.setItem('teamId', state.teamId);
+            localStorage.setItem('teamName', state.teamName);
+            showToast(`Selected team: ${state.teamName}`, 'success');
+        } else {
+            state.teamId = null;
+            state.teamName = null;
+            localStorage.removeItem('teamId');
+            localStorage.removeItem('teamName');
         }
     });
+}
+
+async function loadTeams() {
+    const teamSelect = document.getElementById('team-select');
+
+    try {
+        const data = await api.getTeams(state.leagueId);
+        state.teams = data.teams || [];
+
+        // Clear and populate dropdown
+        teamSelect.innerHTML = '<option value="">Select your team...</option>';
+
+        state.teams.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team.team_id;
+            option.textContent = team.team_name || `Team ${team.team_id}`;
+
+            // Add rank info if available
+            if (team.rank) {
+                option.textContent += ` (#${team.rank})`;
+            }
+
+            // Pre-select if matches saved team
+            if (state.teamId && String(team.team_id) === String(state.teamId)) {
+                option.selected = true;
+            }
+
+            teamSelect.appendChild(option);
+        });
+
+        if (state.teams.length === 0) {
+            teamSelect.innerHTML = '<option value="">No teams found</option>';
+        }
+
+    } catch (error) {
+        console.error('Failed to load teams:', error);
+        teamSelect.innerHTML = '<option value="">Error loading teams</option>';
+        showToast('Failed to load teams. Check league ID.', 'error');
+    }
 }
 
 // =============================================================================
@@ -255,7 +343,7 @@ function initRosterOptimizer() {
 
     analyzeBtn.addEventListener('click', async () => {
         if (!state.teamId) {
-            showToast('Please set your Team ID first', 'error');
+            showToast('Please select your team first', 'error');
             return;
         }
 
@@ -384,7 +472,7 @@ function initLineupOptimizer() {
 
     optimizeBtn.addEventListener('click', async () => {
         if (!state.teamId) {
-            showToast('Please set your Team ID first', 'error');
+            showToast('Please select your team first', 'error');
             return;
         }
 
@@ -594,13 +682,13 @@ function renderTradeEvaluation(result) {
 
     if (fairnessScore > 0.6) {
         fairnessLabel.textContent = 'Good Trade for You!';
-        fairnessLabel.style.color = 'var(--success-color)';
+        fairnessLabel.style.color = 'var(--success)';
     } else if (fairnessScore < 0.4) {
         fairnessLabel.textContent = 'Bad Trade for You';
-        fairnessLabel.style.color = 'var(--danger-color)';
+        fairnessLabel.style.color = 'var(--danger)';
     } else {
         fairnessLabel.textContent = 'Fair Trade';
-        fairnessLabel.style.color = 'var(--warning-color)';
+        fairnessLabel.style.color = 'var(--warning)';
     }
 
     // Update values
@@ -631,7 +719,7 @@ function initTradeTargets() {
 
     findBtn.addEventListener('click', async () => {
         if (!state.teamId) {
-            showToast('Please set your Team ID first', 'error');
+            showToast('Please select your team first', 'error');
             return;
         }
 
@@ -672,7 +760,7 @@ function initTradeSuggestions() {
 
     getBtn.addEventListener('click', async () => {
         if (!state.teamId) {
-            showToast('Please set your Team ID first', 'error');
+            showToast('Please select your team first', 'error');
             return;
         }
 
@@ -900,7 +988,7 @@ window.removePlayerFromTrade = removePlayerFromTrade;
 // =============================================================================
 document.addEventListener('DOMContentLoaded', () => {
     initTabNavigation();
-    initTeamIdControls();
+    initLeagueTeamControls();
     initRosterOptimizer();
     initLineupOptimizer();
     initTradeAnalyzer();

@@ -37,6 +37,42 @@ def get_league_info():
         return jsonify({'error': f'Failed to fetch league info: {str(e)}'}), 500
 
 
+@bp.route('/teams', methods=['GET'])
+def get_teams():
+    """
+    Get all teams in the league with their names and IDs.
+
+    Query params:
+        league_id: Override configured league ID
+    """
+    try:
+        client = get_client()
+        standings = client.get_league_standings()
+
+        teams = []
+        if not standings.empty:
+            # Extract team info from standings
+            for _, row in standings.iterrows():
+                team = {
+                    'team_id': row.get('team_id', row.get('Team ID', row.get('id'))),
+                    'team_name': row.get('team_name', row.get('Team Name', row.get('Team', row.get('name', 'Unknown')))),
+                    'rank': row.get('rank', row.get('Rank', row.get('Place', None))),
+                    'points': row.get('points', row.get('Points', row.get('Total', None)))
+                }
+                if team['team_id'] is not None:
+                    teams.append(team)
+
+        return jsonify({
+            'league_id': request.args.get('league_id', Config.OTTONEU_LEAGUE_ID),
+            'teams': teams,
+            'count': len(teams)
+        })
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch teams: {str(e)}'}), 500
+
+
 @bp.route('/roster', methods=['GET'])
 def get_roster():
     """

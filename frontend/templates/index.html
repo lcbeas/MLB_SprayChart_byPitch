@@ -5,26 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ottoneu Roster Tool</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <header>
         <nav class="navbar">
             <div class="nav-brand">
                 <h1>Ottoneu Roster Tool</h1>
-                <span class="league-badge">League #<span id="league-id">1395</span></span>
             </div>
             <div class="nav-controls">
-                <label for="team-id-input">Team ID:</label>
-                <input type="number" id="team-id-input" placeholder="Your Team ID" class="team-input">
-                <button id="set-team-btn" class="btn-small">Set</button>
+                <div class="control-group">
+                    <label for="league-id-input">League</label>
+                    <input type="number" id="league-id-input" value="1395" class="control-input league-input">
+                    <button id="refresh-league-btn" class="btn-icon" title="Load League">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8V3"/>
+                            <path d="M21 3v5h-5"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="control-group">
+                    <label for="team-select">Team</label>
+                    <select id="team-select" class="control-input team-select">
+                        <option value="">Select your team...</option>
+                    </select>
+                </div>
             </div>
         </nav>
         <nav class="tab-nav">
-            <button class="tab-btn active" data-tab="roster-optimizer">Roster Optimizer</button>
-            <button class="tab-btn" data-tab="lineup-optimizer">Lineup Optimizer</button>
-            <button class="tab-btn" data-tab="trade-analyzer">Trade Analyzer</button>
-            <button class="tab-btn" data-tab="player-value">Player Value</button>
-            <button class="tab-btn" data-tab="free-agents">Free Agents</button>
+            <button class="tab-btn active" data-tab="roster-optimizer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20V10M18 20V4M6 20v-4"/>
+                </svg>
+                Roster Optimizer
+            </button>
+            <button class="tab-btn" data-tab="lineup-optimizer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <path d="M3 9h18M9 21V9"/>
+                </svg>
+                Lineup Optimizer
+            </button>
+            <button class="tab-btn" data-tab="trade-analyzer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>
+                </svg>
+                Trade Analyzer
+            </button>
+            <button class="tab-btn" data-tab="player-value">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v12M9 9h6M9 15h6"/>
+                </svg>
+                Player Value
+            </button>
+            <button class="tab-btn" data-tab="free-agents">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+                </svg>
+                Free Agents
+            </button>
         </nav>
     </header>
 
@@ -37,8 +81,13 @@
             </div>
 
             <div class="action-bar">
-                <button id="analyze-roster-btn" class="btn-primary">Analyze My Roster</button>
-                <select id="compare-to-select">
+                <button id="analyze-roster-btn" class="btn-primary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Analyze My Roster
+                </button>
+                <select id="compare-to-select" class="select-input">
                     <option value="league">Compare to League</option>
                     <option value="top_teams">Compare to Top Teams</option>
                 </select>
@@ -46,7 +95,10 @@
 
             <div id="roster-analysis" class="analysis-container">
                 <div class="placeholder-message">
-                    <p>Enter your Team ID above and click "Analyze My Roster" to see your roster analysis</p>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M12 20V10M18 20V4M6 20v-4"/>
+                    </svg>
+                    <p>Select your team above and click "Analyze My Roster" to see your roster analysis</p>
                 </div>
             </div>
 
@@ -77,23 +129,29 @@
             <!-- Positional Analysis -->
             <div id="positional-analysis" class="hidden">
                 <h3>Positional Breakdown</h3>
-                <div class="position-grid" id="position-grid">
-                    <!-- Dynamically populated -->
-                </div>
+                <div class="position-grid" id="position-grid"></div>
             </div>
 
             <!-- Buy Low / Sell High -->
             <div id="value-opportunities" class="hidden">
-                <div class="opportunity-section">
-                    <h3>Buy Low Candidates</h3>
-                    <div id="buy-low-list" class="player-list">
-                        <!-- Dynamically populated -->
+                <div class="opportunities-grid">
+                    <div class="opportunity-section buy-low">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 19V5M5 12l7-7 7 7"/>
+                            </svg>
+                            Buy Low Candidates
+                        </h3>
+                        <div id="buy-low-list" class="player-list"></div>
                     </div>
-                </div>
-                <div class="opportunity-section">
-                    <h3>Sell High Candidates</h3>
-                    <div id="sell-high-list" class="player-list">
-                        <!-- Dynamically populated -->
+                    <div class="opportunity-section sell-high">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 5v14M5 12l7 7 7-7"/>
+                            </svg>
+                            Sell High Candidates
+                        </h3>
+                        <div id="sell-high-list" class="player-list"></div>
                     </div>
                 </div>
             </div>
@@ -101,9 +159,7 @@
             <!-- Recommendations -->
             <div id="recommendations-section" class="hidden">
                 <h3>Recommendations</h3>
-                <ul id="recommendations-list" class="recommendations">
-                    <!-- Dynamically populated -->
-                </ul>
+                <ul id="recommendations-list" class="recommendations"></ul>
             </div>
         </section>
 
@@ -115,12 +171,21 @@
             </div>
 
             <div class="action-bar">
-                <button id="optimize-lineup-btn" class="btn-primary">Optimize Lineup</button>
+                <button id="optimize-lineup-btn" class="btn-primary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                    Optimize Lineup
+                </button>
                 <input type="date" id="lineup-date" class="date-input">
             </div>
 
             <div id="lineup-container" class="lineup-display">
                 <div class="placeholder-message">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M3 9h18M9 21V9"/>
+                    </svg>
                     <p>Click "Optimize Lineup" to generate your optimal starting lineup</p>
                 </div>
             </div>
@@ -131,20 +196,20 @@
                 <div class="expected-points">
                     Expected Points: <span id="expected-batting-pts">-</span>
                 </div>
-                <table id="batting-lineup-table" class="lineup-table">
-                    <thead>
-                        <tr>
-                            <th>Slot</th>
-                            <th>Player</th>
-                            <th>Position</th>
-                            <th>Matchup</th>
-                            <th>Exp. Pts</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Dynamically populated -->
-                    </tbody>
-                </table>
+                <div class="table-container">
+                    <table id="batting-lineup-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Slot</th>
+                                <th>Player</th>
+                                <th>Position</th>
+                                <th>Matchup</th>
+                                <th>Exp. Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Pitching Lineup -->
@@ -153,19 +218,19 @@
                 <div class="expected-points">
                     Expected Points: <span id="expected-pitching-pts">-</span>
                 </div>
-                <table id="pitching-lineup-table" class="lineup-table">
-                    <thead>
-                        <tr>
-                            <th>Slot</th>
-                            <th>Player</th>
-                            <th>Remaining IP</th>
-                            <th>Exp. Pts</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Dynamically populated -->
-                    </tbody>
-                </table>
+                <div class="table-container">
+                    <table id="pitching-lineup-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Slot</th>
+                                <th>Player</th>
+                                <th>Remaining IP</th>
+                                <th>Exp. Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Inning Limits -->
@@ -185,17 +250,12 @@
                         <span id="remaining-ip">- IP</span>
                     </div>
                 </div>
-                <div id="pitcher-limits-list" class="pitcher-limits">
-                    <!-- Dynamically populated -->
-                </div>
             </div>
 
             <!-- Lineup Warnings -->
             <div id="lineup-warnings" class="hidden">
                 <h4>Warnings</h4>
-                <ul id="warnings-list" class="warnings">
-                    <!-- Dynamically populated -->
-                </ul>
+                <ul id="warnings-list" class="warnings"></ul>
             </div>
         </section>
 
@@ -215,27 +275,34 @@
             <!-- Evaluate Trade Panel -->
             <div id="evaluate-trade-panel" class="trade-panel active">
                 <div class="trade-builder">
-                    <div class="trade-side">
+                    <div class="trade-side give-side">
                         <h4>You Give</h4>
-                        <div id="give-players" class="trade-player-list">
-                            <!-- Dynamically populated -->
+                        <div id="give-players" class="trade-player-list"></div>
+                        <div class="search-container">
+                            <input type="text" id="give-player-search" placeholder="Search player to add..." class="search-input">
+                            <div id="give-search-results" class="search-dropdown hidden"></div>
                         </div>
-                        <input type="text" id="give-player-search" placeholder="Search player to add..." class="player-search">
-                        <div id="give-search-results" class="search-dropdown hidden"></div>
                     </div>
                     <div class="trade-arrow">
-                        <span>&#8644;</span>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>
+                        </svg>
                     </div>
-                    <div class="trade-side">
+                    <div class="trade-side get-side">
                         <h4>You Get</h4>
-                        <div id="get-players" class="trade-player-list">
-                            <!-- Dynamically populated -->
+                        <div id="get-players" class="trade-player-list"></div>
+                        <div class="search-container">
+                            <input type="text" id="get-player-search" placeholder="Search player to add..." class="search-input">
+                            <div id="get-search-results" class="search-dropdown hidden"></div>
                         </div>
-                        <input type="text" id="get-player-search" placeholder="Search player to add..." class="player-search">
-                        <div id="get-search-results" class="search-dropdown hidden"></div>
                     </div>
                 </div>
-                <button id="evaluate-trade-btn" class="btn-primary">Evaluate Trade</button>
+                <button id="evaluate-trade-btn" class="btn-primary btn-full">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Evaluate Trade
+                </button>
 
                 <div id="trade-evaluation" class="hidden">
                     <div class="trade-result">
@@ -260,9 +327,7 @@
                                 <span id="net-trade-value" class="value">$0</span>
                             </div>
                         </div>
-                        <div id="trade-recommendation" class="recommendation-box">
-                            <!-- Dynamically populated -->
-                        </div>
+                        <div id="trade-recommendation" class="recommendation-box"></div>
                     </div>
                 </div>
             </div>
@@ -270,7 +335,7 @@
             <!-- Find Targets Panel -->
             <div id="find-targets-panel" class="trade-panel hidden">
                 <div class="filter-bar">
-                    <select id="target-position">
+                    <select id="target-position" class="select-input">
                         <option value="">All Positions</option>
                         <option value="C">C</option>
                         <option value="1B">1B</option>
@@ -281,7 +346,7 @@
                         <option value="SP">SP</option>
                         <option value="RP">RP</option>
                     </select>
-                    <input type="number" id="max-salary" placeholder="Max Salary" min="1" max="100">
+                    <input type="number" id="max-salary" placeholder="Max Salary" min="1" max="100" class="number-input">
                     <button id="find-targets-btn" class="btn-primary">Find Targets</button>
                 </div>
                 <div id="trade-targets-list" class="targets-container">
@@ -294,7 +359,7 @@
             <!-- Suggested Trades Panel -->
             <div id="suggestions-panel" class="trade-panel hidden">
                 <div class="filter-bar">
-                    <select id="improve-position">
+                    <select id="improve-position" class="select-input">
                         <option value="">Any Position</option>
                         <option value="C">Improve C</option>
                         <option value="1B">Improve 1B</option>
@@ -324,12 +389,17 @@
 
             <div class="search-section">
                 <div class="search-bar">
-                    <input type="text" id="value-player-search" placeholder="Search for a player...">
-                    <select id="player-type-select">
+                    <input type="text" id="value-player-search" placeholder="Search for a player..." class="search-input-large">
+                    <select id="player-type-select" class="select-input">
                         <option value="batter">Batter</option>
                         <option value="pitcher">Pitcher</option>
                     </select>
-                    <button id="get-value-btn" class="btn-primary">Get Value</button>
+                    <button id="get-value-btn" class="btn-primary">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        Get Value
+                    </button>
                 </div>
             </div>
 
@@ -378,11 +448,11 @@
                 <div class="bid-inputs">
                     <div class="input-group">
                         <label for="current-bid">Current Bid</label>
-                        <input type="number" id="current-bid" placeholder="$0" min="0">
+                        <input type="number" id="current-bid" placeholder="$0" min="0" class="number-input">
                     </div>
                     <div class="input-group">
                         <label for="budget-remaining">Your Budget</label>
-                        <input type="number" id="budget-remaining" placeholder="$400" value="400" min="0">
+                        <input type="number" id="budget-remaining" placeholder="$400" value="400" min="0" class="number-input">
                     </div>
                     <button id="get-bid-rec-btn" class="btn-secondary">Get Recommendation</button>
                 </div>
@@ -401,9 +471,7 @@
                                 <span id="adjusted-value" class="value">$0</span>
                             </div>
                         </div>
-                        <ul id="bid-reasoning" class="reasoning-list">
-                            <!-- Dynamically populated -->
-                        </ul>
+                        <ul id="bid-reasoning" class="reasoning-list"></ul>
                     </div>
                 </div>
             </div>
@@ -417,7 +485,7 @@
             </div>
 
             <div class="filter-bar">
-                <select id="fa-position-filter">
+                <select id="fa-position-filter" class="select-input">
                     <option value="">All Positions</option>
                     <option value="C">C</option>
                     <option value="1B">1B</option>
@@ -433,6 +501,11 @@
 
             <div id="fa-results" class="results-table">
                 <div class="placeholder-message">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+                    </svg>
                     <p>Select a position filter and click "Load Free Agents"</p>
                 </div>
             </div>
