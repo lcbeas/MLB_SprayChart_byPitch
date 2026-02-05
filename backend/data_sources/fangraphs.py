@@ -295,28 +295,7 @@ class FangraphsClient:
         """
         system_key = self.PROJECTION_SYSTEMS.get(system.lower(), system)
 
-        try:
-            # Try pybaseball first
-            from pybaseball import fg_batting_data, fg_pitching_data
-
-            if player_type == 'bat':
-                df = fg_batting_data(2024, projection=system_key)
-            else:
-                df = fg_pitching_data(2024, projection=system_key)
-
-            if not df.empty:
-                df = self._standardize_columns(df)
-                df['projection_system'] = system
-
-                if team:
-                    df = df[df['Team'].str.contains(team, case=False, na=False)]
-
-                return df
-
-        except Exception as e:
-            print(f"pybaseball projection error: {e}")
-
-        # Fallback: scrape Fangraphs projections page
+        # Scrape Fangraphs projections page directly
         try:
             stats_type = 'bat' if player_type == 'bat' else 'pit'
             url = (
