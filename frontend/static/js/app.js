@@ -158,6 +158,11 @@ const api = {
 
     searchPlayers(query) {
         return this.get('/players/search', { q: query });
+    },
+
+    // Search Ottoneu players only (active players for trades)
+    searchOttoneuPlayers(query) {
+        return this.get('/league/search', { q: query });
     }
 };
 
@@ -600,7 +605,7 @@ function initTradeEvaluator() {
         }
     });
 
-    // Player search for trade builder
+    // Player search for trade builder - uses Ottoneu players only (active)
     ['give', 'get'].forEach(side => {
         const searchInput = document.getElementById(`${side}-player-search`);
         const resultsDiv = document.getElementById(`${side}-search-results`);
@@ -613,7 +618,8 @@ function initTradeEvaluator() {
             }
 
             try {
-                const data = await api.searchPlayers(query);
+                // Use Ottoneu search for active players only
+                const data = await api.searchOttoneuPlayers(query);
                 renderSearchResults(data.results || [], resultsDiv, side);
             } catch (error) {
                 console.error('Search error:', error);

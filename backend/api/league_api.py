@@ -357,3 +357,52 @@ def search_players():
         })
     except Exception as e:
         return jsonify({'error': f'Search failed: {str(e)}'}), 500
+
+
+@bp.route('/debug', methods=['GET'])
+def debug_data():
+    """
+    Debug endpoint to check data availability.
+    Returns info about what data can be fetched.
+    """
+    try:
+        client = get_client()
+        result = {
+            'league_id': client.league_id,
+        }
+
+        # Check rosters
+        try:
+            rosters = client.get_league_rosters()
+            result['rosters'] = {
+                'count': len(rosters),
+                'columns': list(rosters.columns) if not rosters.empty else [],
+                'sample': rosters.head(2).to_dict('records') if not rosters.empty else []
+            }
+        except Exception as e:
+            result['rosters'] = {'error': str(e)}
+
+        # Check average values
+        try:
+            avg_values = client.get_average_values()
+            result['average_values'] = {
+                'count': len(avg_values),
+                'columns': list(avg_values.columns) if not avg_values.empty else [],
+                'sample': avg_values.head(2).to_dict('records') if not avg_values.empty else []
+            }
+        except Exception as e:
+            result['average_values'] = {'error': str(e)}
+
+        # Check teams
+        try:
+            teams = client.get_teams()
+            result['teams'] = {
+                'count': len(teams),
+                'teams': teams[:3] if teams else []
+            }
+        except Exception as e:
+            result['teams'] = {'error': str(e)}
+
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

@@ -38,11 +38,29 @@ class RosterAnalyzer:
         'RP': ['RP'],
     }
 
+    # Possible column names for owner ID
+    OWNER_ID_COLUMNS = ['owner_id', 'team_id', 'teamid', 'fantasy_team_id']
+    OWNER_NAME_COLUMNS = ['owner_name', 'team_name', 'teamname', 'owner', 'fantasy_team']
+
     def __init__(self, league_id: Optional[str] = None):
         self.ottoneu_client = OttoneuClient(league_id=league_id)
         self.fg_client = FangraphsClient()
         self.value_model = PlayerValueModel()
         self.value_model.load_models()
+
+    def _get_owner_id_col(self, df: pd.DataFrame) -> Optional[str]:
+        """Find the owner ID column in a DataFrame."""
+        for col in self.OWNER_ID_COLUMNS:
+            if col in df.columns:
+                return col
+        return None
+
+    def _get_owner_name_col(self, df: pd.DataFrame) -> Optional[str]:
+        """Find the owner name column in a DataFrame."""
+        for col in self.OWNER_NAME_COLUMNS:
+            if col in df.columns:
+                return col
+        return None
 
     def analyze_roster(
         self,
@@ -155,15 +173,17 @@ class RosterAnalyzer:
         """Compare roster to league average."""
         comparison = {}
 
-        # Get unique teams
-        if 'owner_id' not in all_rosters.columns:
+        # Get owner ID column dynamically
+        owner_id_col = self._get_owner_id_col(all_rosters)
+        if not owner_id_col:
+            print(f"Warning: Could not find owner ID column. Available: {list(all_rosters.columns)}")
             return comparison
 
-        teams = all_rosters['owner_id'].unique()
+        teams = all_rosters[owner_id_col].unique()
         team_stats = []
 
         for team in teams:
-            team_roster = all_rosters[all_rosters['owner_id'] == team]
+            team_roster = all_rosters[all_rosters[owner_id_col] == team]
             team_stats.append({
                 'team_id': team,
                 'total_salary': team_roster['salary'].sum() if 'salary' in team_roster.columns else 0,
@@ -199,7 +219,9 @@ class RosterAnalyzer:
         """Compare roster to top performing teams."""
         comparison = {}
 
-        if standings.empty or 'owner_id' not in all_rosters.columns:
+        # Get owner ID column dynamically
+        owner_id_col = self._get_owner_id_col(all_rosters)
+        if standings.empty or not owner_id_col:
             return comparison
 
         # Get top 3 teams from standings
@@ -215,10 +237,10 @@ class RosterAnalyzer:
             # Top teams' average at this position
             top_salaries = []
             for _, team_row in top_teams.iterrows():
-                team_id = team_row.get('team_id', team_row.get('owner_id'))
+                team_id = team_row.get('team_id', team_row.get(owner_id_col))
                 if team_id:
                     team_players = all_rosters[
-                        (all_rosters['owner_id'] == team_id) &
+                        (all_rosters[owner_id_col] == team_id) &
                         (all_rosters['position'].str.contains('|'.join(eligible), case=False, na=False))
                     ]
                     top_salaries.append(team_players['salary'].sum() if 'salary' in team_players.columns else 0)

@@ -25,11 +25,29 @@ class TradeAnalyzer:
     - Identify teams that might accept specific trades
     """
 
+    # Possible column names for owner ID
+    OWNER_ID_COLUMNS = ['owner_id', 'team_id', 'teamid', 'fantasy_team_id']
+    OWNER_NAME_COLUMNS = ['owner_name', 'team_name', 'teamname', 'owner', 'fantasy_team']
+
     def __init__(self, league_id: Optional[str] = None):
         self.ottoneu_client = OttoneuClient(league_id=league_id)
         self.value_model = PlayerValueModel()
         self.value_model.load_models()
         self.roster_analyzer = RosterAnalyzer(league_id=league_id)
+
+    def _get_owner_id_col(self, df: pd.DataFrame) -> Optional[str]:
+        """Find the owner ID column in a DataFrame."""
+        for col in self.OWNER_ID_COLUMNS:
+            if col in df.columns:
+                return col
+        return None
+
+    def _get_owner_name_col(self, df: pd.DataFrame) -> Optional[str]:
+        """Find the owner name column in a DataFrame."""
+        for col in self.OWNER_NAME_COLUMNS:
+            if col in df.columns:
+                return col
+        return None
 
     def evaluate_trade(
         self,
@@ -260,8 +278,16 @@ class TradeAnalyzer:
         if all_rosters.empty:
             return []
 
+        # Get owner ID column dynamically
+        owner_id_col = self._get_owner_id_col(all_rosters)
+        owner_name_col = self._get_owner_name_col(all_rosters)
+
+        if not owner_id_col:
+            print(f"Warning: Could not find owner ID column. Available: {list(all_rosters.columns)}")
+            return []
+
         # Filter to other teams
-        other_teams = all_rosters[all_rosters['owner_id'] != my_team_id]
+        other_teams = all_rosters[all_rosters[owner_id_col] != my_team_id]
 
         if target_position:
             position_pattern = target_position
@@ -283,8 +309,8 @@ class TradeAnalyzer:
                 'position': player.get('position', ''),
                 'team': player.get('mlb_team', ''),
                 'salary': player.get('salary', 0),
-                'owner_id': player.get('owner_id'),
-                'owner_name': player.get('owner_name', ''),
+                'owner_id': player.get(owner_id_col) if owner_id_col else None,
+                'owner_name': player.get(owner_name_col, '') if owner_name_col else '',
             }
 
             # Get average value if available
@@ -325,6 +351,9 @@ class TradeAnalyzer:
         if my_roster.empty or all_rosters.empty:
             return []
 
+        # Get owner ID column dynamically
+        owner_id_col = self._get_owner_id_col(all_rosters)
+
         # Find target player
         target_player = all_rosters[
             (all_rosters.get('fg_id', all_rosters.get('ottoneu_id')) == target_player_id) |
@@ -336,7 +365,7 @@ class TradeAnalyzer:
 
         target = target_player.iloc[0]
         target_value = self._estimate_player_value(target)
-        target_owner = target.get('owner_id')
+        target_owner = target.get(owner_id_col) if owner_id_col else None
 
         # Find combinations of my players that match value
         fair_trades = []
@@ -470,18 +499,26 @@ class TradeAnalyzer:
         if all_rosters.empty:
             return {}
 
+        # Get owner ID/name columns dynamically
+        owner_id_col = self._get_owner_id_col(all_rosters)
+        owner_name_col = self._get_owner_name_col(all_rosters)
+
+        if not owner_id_col:
+            print(f"Warning: Could not find owner ID column. Available: {list(all_rosters.columns)}")
+            return {}
+
         # Analyze each team
-        teams = all_rosters['owner_id'].unique()
+        teams = all_rosters[owner_id_col].unique()
         team_analysis = []
 
         for team in teams:
             if team == my_team_id:
                 continue
 
-            team_roster = all_rosters[all_rosters['owner_id'] == team]
+            team_roster = all_rosters[all_rosters[owner_id_col] == team]
             team_data = {
                 'team_id': team,
-                'team_name': team_roster.iloc[0].get('owner_name', f'Team {team}') if not team_roster.empty else f'Team {team}',
+                'team_name': team_roster.iloc[0].get(owner_name_col, f'Team {team}') if not team_roster.empty and owner_name_col else f'Team {team}',
                 'total_salary': team_roster['salary'].sum() if 'salary' in team_roster.columns else 0,
                 'player_count': len(team_roster),
                 'cap_space': 400 - (team_roster['salary'].sum() if 'salary' in team_roster.columns else 0),

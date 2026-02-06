@@ -191,16 +191,19 @@ def evaluate_trade():
     """
     Evaluate a proposed trade.
 
-    POST body:
+    POST body (simple format from frontend):
+        {
+            "team_id": 123,
+            "give_players": [...],
+            "get_players": [...]
+        }
+
+    Or full format:
         {
             "my_team_id": 123,
-            "my_players": [
-                {"player_id": 456, "name": "Player A", "salary": 10, "position": "SS"}
-            ],
+            "my_players": [...],
             "their_team_id": 789,
-            "their_players": [
-                {"player_id": 101, "name": "Player B", "salary": 15, "position": "3B"}
-            ]
+            "their_players": [...]
         }
 
     Query params:
@@ -214,18 +217,25 @@ def evaluate_trade():
     if not data:
         return jsonify({'error': 'Request body is required'}), 400
 
-    required_fields = ['my_team_id', 'my_players', 'their_team_id', 'their_players']
-    for field in required_fields:
-        if field not in data:
-            return jsonify({'error': f'{field} is required'}), 400
+    # Support both simple frontend format and full format
+    my_team_id = data.get('my_team_id') or data.get('team_id')
+    my_players = data.get('my_players') or data.get('give_players', [])
+    their_team_id = data.get('their_team_id') or 0  # Can be 0 if not specified
+    their_players = data.get('their_players') or data.get('get_players', [])
+
+    if not my_team_id:
+        return jsonify({'error': 'team_id is required'}), 400
+
+    if not my_players or not their_players:
+        return jsonify({'error': 'Both give_players and get_players are required'}), 400
 
     try:
         analyzer = get_trade_analyzer()
         evaluation = analyzer.evaluate_trade(
-            my_team_id=data['my_team_id'],
-            my_players=data['my_players'],
-            their_team_id=data['their_team_id'],
-            their_players=data['their_players']
+            my_team_id=my_team_id,
+            my_players=my_players,
+            their_team_id=their_team_id,
+            their_players=their_players
         )
 
         return jsonify(evaluation)
