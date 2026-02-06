@@ -475,27 +475,72 @@ class FangraphsClient:
         """
         results = []
 
-        # Search in current projections (has most complete player list)
-        if player_type in ['bat', 'all']:
-            batters = self.get_projections('steamer', 'bat')
-            if not batters.empty and 'Name' in batters.columns:
-                matches = batters[batters['Name'].str.contains(query, case=False, na=False)]
-                if not matches.empty:
-                    matches = matches.copy()
-                    matches['player_type'] = 'batter'
-                    results.append(matches)
+        # Try pybaseball playerid_lookup first (most reliable)
+        try:
+            from pybaseball import playerid_lookup
 
-        if player_type in ['pit', 'all']:
-            pitchers = self.get_projections('steamer', 'pit')
-            if not pitchers.empty and 'Name' in pitchers.columns:
-                matches = pitchers[pitchers['Name'].str.contains(query, case=False, na=False)]
-                if not matches.empty:
-                    matches = matches.copy()
-                    matches['player_type'] = 'pitcher'
-                    results.append(matches)
+            # Split name into first/last for lookup
+            parts = query.strip().split()
+            if len(parts) >= 2:
+                last_name = parts[-1]
+                first_name = parts[0]
+                lookup_results = playerid_lookup(last_name, first_name, fuzzy=True)
+            else:
+                # Single name - try as last name
+                lookup_results = playerid_lookup(query, fuzzy=True)
+
+            if not lookup_results.empty:
+                # Standardize columns
+                lookup_results = lookup_results.copy()
+                if 'name_first' in lookup_results.columns and 'name_last' in lookup_results.columns:
+                    lookup_results['name'] = lookup_results['name_first'] + ' ' + lookup_results['name_last']
+                elif 'Name' not in lookup_results.columns:
+                    lookup_results['name'] = query
+
+                # Rename ID columns
+                if 'key_fangraphs' in lookup_results.columns:
+                    lookup_results['fg_id'] = lookup_results['key_fangraphs']
+                if 'key_mlbam' in lookup_results.columns:
+                    lookup_results['mlbam_id'] = lookup_results['key_mlbam']
+
+                # Add to results
+                results.append(lookup_results)
+
+        except Exception as e:
+            print(f"pybaseball lookup error: {e}")
+
+        # Fallback: Search in current projections
+        if not results:
+            if player_type in ['bat', 'all']:
+                try:
+                    batters = self.get_projections('steamer', 'bat')
+                    if not batters.empty and 'Name' in batters.columns:
+                        matches = batters[batters['Name'].str.contains(query, case=False, na=False)]
+                        if not matches.empty:
+                            matches = matches.copy()
+                            matches['player_type'] = 'batter'
+                            results.append(matches)
+                except Exception as e:
+                    print(f"Projections search error: {e}")
+
+            if player_type in ['pit', 'all']:
+                try:
+                    pitchers = self.get_projections('steamer', 'pit')
+                    if not pitchers.empty and 'Name' in pitchers.columns:
+                        matches = pitchers[pitchers['Name'].str.contains(query, case=False, na=False)]
+                        if not matches.empty:
+                            matches = matches.copy()
+                            matches['player_type'] = 'pitcher'
+                            results.append(matches)
+                except Exception as e:
+                    print(f"Projections search error: {e}")
 
         if results:
-            return pd.concat(results, ignore_index=True)
+            combined = pd.concat(results, ignore_index=True)
+            # Ensure we have a 'name' column for display
+            if 'name' not in combined.columns and 'Name' in combined.columns:
+                combined['name'] = combined['Name']
+            return combined
         return pd.DataFrame()
 
     def get_player_page(self, player_id: int) -> Dict:

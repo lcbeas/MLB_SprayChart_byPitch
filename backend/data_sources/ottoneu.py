@@ -84,21 +84,53 @@ class OttoneuClient:
         try:
             df = self._get_csv(url)
 
-            # Standardize column names
-            df.columns = df.columns.str.lower().str.replace(' ', '_')
+            # Standardize column names - lowercase and replace spaces
+            df.columns = df.columns.str.lower().str.replace(' ', '_').str.strip()
 
-            # Rename common columns for consistency
+            # Debug: print actual columns
+            print(f"Roster columns: {list(df.columns)}")
+
+            # Comprehensive column mapping for various Ottoneu export formats
             column_mapping = {
+                # Ottoneu ID variations
                 'ottoneu_id': 'ottoneu_id',
+                'otto_id': 'ottoneu_id',
+                'player_id': 'ottoneu_id',
+                # FanGraphs ID variations
                 'fg_majorleagueid': 'fg_id',
+                'fg_id': 'fg_id',
+                'fangraphs_id': 'fg_id',
                 'fg_minorleagueid': 'fg_minor_id',
+                # MLBAM ID
                 'mlbam_id': 'mlbam_id',
+                'mlb_id': 'mlbam_id',
+                # Name variations
                 'name': 'name',
+                'player_name': 'name',
+                'player': 'name',
+                # Team variations
                 'team': 'mlb_team',
+                'mlb_team': 'mlb_team',
+                'org': 'mlb_team',
+                # Position variations
                 'pos': 'position',
+                'position': 'position',
+                'positions': 'position',
+                # Salary variations
                 'salary': 'salary',
-                'team_name': 'owner_name',
+                'sal': 'salary',
+                '$': 'salary',
+                # Owner ID variations
                 'team_id': 'owner_id',
+                'teamid': 'owner_id',
+                'owner_id': 'owner_id',
+                'fantasy_team_id': 'owner_id',
+                # Owner name variations
+                'team_name': 'owner_name',
+                'teamname': 'owner_name',
+                'owner_name': 'owner_name',
+                'owner': 'owner_name',
+                'fantasy_team': 'owner_name',
             }
 
             # Only rename columns that exist
@@ -114,6 +146,55 @@ class OttoneuClient:
         except Exception as e:
             print(f"Error fetching roster export: {e}")
             return pd.DataFrame()
+
+    def get_teams(self) -> list:
+        """
+        Get all teams in the league with their IDs and names.
+        Extracts from roster data which is more reliable than standings.
+
+        Returns:
+            List of dicts with team_id, team_name, player_count, total_salary
+        """
+        rosters = self.get_league_rosters()
+
+        if rosters.empty:
+            return []
+
+        teams = []
+
+        # Find owner columns
+        owner_id_col = None
+        owner_name_col = None
+
+        for col in rosters.columns:
+            if col in ['owner_id', 'team_id', 'teamid']:
+                owner_id_col = col
+            if col in ['owner_name', 'team_name', 'teamname', 'owner']:
+                owner_name_col = col
+
+        if not owner_id_col:
+            print(f"Could not find owner_id column. Available: {list(rosters.columns)}")
+            return []
+
+        # Group by owner
+        for owner_id in rosters[owner_id_col].unique():
+            if pd.isna(owner_id):
+                continue
+
+            team_players = rosters[rosters[owner_id_col] == owner_id]
+
+            team = {
+                'team_id': int(owner_id) if pd.notna(owner_id) else None,
+                'team_name': team_players[owner_name_col].iloc[0] if owner_name_col and not team_players.empty else f'Team {owner_id}',
+                'player_count': len(team_players),
+                'total_salary': team_players['salary'].sum() if 'salary' in team_players.columns else 0
+            }
+            teams.append(team)
+
+        # Sort by team name
+        teams.sort(key=lambda x: x.get('team_name', ''))
+
+        return teams
 
     def get_my_roster(self, team_id: Optional[int] = None) -> pd.DataFrame:
         """
@@ -159,15 +240,31 @@ class OttoneuClient:
         # Get average values (all available players)
         avg_values = self.get_average_values()
         if avg_values.empty:
-            return rosters[rosters['owner_id'].isna()]
+            print("Warning: Could not fetch average values for free agent lookup")
+            return pd.DataFrame()
 
-        # Find players not on any roster
-        rostered_ids = set(rosters['ottoneu_id'].dropna().astype(int))
+        # Find rostered player IDs - check for various column names
+        rostered_ids = set()
+        for id_col in ['ottoneu_id', 'otto_id', 'player_id']:
+            if id_col in rosters.columns:
+                rostered_ids = set(rosters[id_col].dropna().astype(int))
+                break
 
-        if 'ottoneu_id' in avg_values.columns:
-            free_agents = avg_values[~avg_values['ottoneu_id'].isin(rostered_ids)].copy()
+        if not rostered_ids:
+            print(f"Warning: Could not find ID column in rosters. Columns: {list(rosters.columns)}")
+            return avg_values.copy()  # Return all as potential free agents
+
+        # Find matching ID column in avg_values
+        avg_id_col = None
+        for id_col in ['ottoneu_id', 'otto_id', 'player_id', 'id']:
+            if id_col in avg_values.columns:
+                avg_id_col = id_col
+                break
+
+        if avg_id_col:
+            free_agents = avg_values[~avg_values[avg_id_col].isin(rostered_ids)].copy()
         else:
-            # Fallback: return empty if we can't match
+            print(f"Warning: Could not find ID column in avg_values. Columns: {list(avg_values.columns)}")
             return pd.DataFrame()
 
         # Filter by position if specified

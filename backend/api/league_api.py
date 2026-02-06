@@ -47,20 +47,9 @@ def get_teams():
     """
     try:
         client = get_client()
-        standings = client.get_league_standings()
 
-        teams = []
-        if not standings.empty:
-            # Extract team info from standings
-            for _, row in standings.iterrows():
-                team = {
-                    'team_id': row.get('team_id', row.get('Team ID', row.get('id'))),
-                    'team_name': row.get('team_name', row.get('Team Name', row.get('Team', row.get('name', 'Unknown')))),
-                    'rank': row.get('rank', row.get('Rank', row.get('Place', None))),
-                    'points': row.get('points', row.get('Points', row.get('Total', None)))
-                }
-                if team['team_id'] is not None:
-                    teams.append(team)
+        # Use the new get_teams method which extracts from roster data
+        teams = client.get_teams()
 
         return jsonify({
             'league_id': request.args.get('league_id', Config.OTTONEU_LEAGUE_ID),
