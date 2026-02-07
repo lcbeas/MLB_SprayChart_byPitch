@@ -211,12 +211,23 @@ class OttoneuClient:
         if all_rosters.empty:
             return pd.DataFrame()
 
+        # Find owner ID column dynamically
+        owner_id_col = None
+        for col in ['owner_id', 'team_id', 'teamid', 'fantasy_team_id']:
+            if col in all_rosters.columns:
+                owner_id_col = col
+                break
+
+        if not owner_id_col:
+            print(f"Warning: Could not find owner_id column. Available: {list(all_rosters.columns)}")
+            return pd.DataFrame()
+
         if team_id:
-            return all_rosters[all_rosters['owner_id'] == team_id]
+            return all_rosters[all_rosters[owner_id_col] == team_id]
 
         # Return first team's roster if no team_id specified
-        first_owner = all_rosters['owner_id'].iloc[0]
-        return all_rosters[all_rosters['owner_id'] == first_owner]
+        first_owner = all_rosters[owner_id_col].iloc[0]
+        return all_rosters[all_rosters[owner_id_col] == first_owner]
 
     @cached_data(hours=1)
     def get_free_agents(self, position: Optional[str] = None) -> pd.DataFrame:
@@ -247,7 +258,12 @@ class OttoneuClient:
         rostered_ids = set()
         for id_col in ['ottoneu_id', 'otto_id', 'player_id']:
             if id_col in rosters.columns:
-                rostered_ids = set(rosters[id_col].dropna().astype(int))
+                try:
+                    rostered_ids = set(rosters[id_col].dropna().astype(int))
+                except (ValueError, TypeError) as e:
+                    print(f"Warning: Could not convert {id_col} to int: {e}")
+                    # Try without converting
+                    rostered_ids = set(rosters[id_col].dropna())
                 break
 
         if not rostered_ids:
@@ -601,15 +617,16 @@ class OttoneuClient:
             print(f"Error fetching league info: {e}")
             return {'league_id': self.league_id, 'error': str(e)}
 
-    def search_players(self, query: str) -> pd.DataFrame:
+    def search_players(self, query: str, include_roster_info: bool = True) -> pd.DataFrame:
         """
-        Search for players by name in average values.
+        Search for players by name, including league roster info with salaries.
 
         Args:
             query: Player name search string
+            include_roster_info: If True, merge with roster data to include salaries
 
         Returns:
-            DataFrame with matching players
+            DataFrame with matching players including roster status and salary
         """
         avg_values = self.get_average_values()
 
@@ -618,7 +635,66 @@ class OttoneuClient:
 
         # Case-insensitive search
         mask = avg_values['name'].str.contains(query, case=False, na=False)
-        return avg_values[mask].copy()
+        results = avg_values[mask].copy()
+
+        if results.empty or not include_roster_info:
+            return results
+
+        # Get league rosters to include current salary and owner info
+        rosters = self.get_league_rosters()
+        if rosters.empty:
+            return results
+
+        # Find ID column in results
+        id_col = None
+        for col in ['ottoneu_id', 'otto_id', 'player_id', 'id']:
+            if col in results.columns:
+                id_col = col
+                break
+
+        # Find ID column in rosters
+        roster_id_col = None
+        for col in ['ottoneu_id', 'otto_id', 'player_id']:
+            if col in rosters.columns:
+                roster_id_col = col
+                break
+
+        if id_col and roster_id_col:
+            # Merge with roster data to get salary and owner info
+            roster_cols = [roster_id_col]
+            if 'salary' in rosters.columns:
+                roster_cols.append('salary')
+            if 'owner_name' in rosters.columns:
+                roster_cols.append('owner_name')
+            if 'owner_id' in rosters.columns:
+                roster_cols.append('owner_id')
+
+            roster_subset = rosters[roster_cols].drop_duplicates(subset=[roster_id_col])
+
+            # Rename ID column for merge if different
+            if id_col != roster_id_col:
+                roster_subset = roster_subset.rename(columns={roster_id_col: id_col})
+
+            # Merge - left join to keep all search results
+            results = results.merge(
+                roster_subset,
+                on=id_col,
+                how='left',
+                suffixes=('_avg', '_roster')
+            )
+
+            # Use roster salary if available, otherwise avg_salary
+            if 'salary' in results.columns and 'avg_salary' in results.columns:
+                results['current_salary'] = results['salary'].fillna(results['avg_salary'])
+            elif 'salary' in results.columns:
+                results['current_salary'] = results['salary']
+            elif 'avg_salary' in results.columns:
+                results['current_salary'] = results['avg_salary']
+
+            # Add rostered status
+            results['is_rostered'] = results['owner_name'].notna()
+
+        return results
 
     def get_roster_by_position(self, position: str) -> pd.DataFrame:
         """

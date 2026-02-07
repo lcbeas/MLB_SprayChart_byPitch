@@ -41,6 +41,8 @@ class RosterAnalyzer:
     # Possible column names for owner ID
     OWNER_ID_COLUMNS = ['owner_id', 'team_id', 'teamid', 'fantasy_team_id']
     OWNER_NAME_COLUMNS = ['owner_name', 'team_name', 'teamname', 'owner', 'fantasy_team']
+    # Possible column names for position
+    POSITION_COLUMNS = ['position', 'positions', 'pos', 'eligible_positions', 'eligibility']
 
     def __init__(self, league_id: Optional[str] = None):
         self.ottoneu_client = OttoneuClient(league_id=league_id)
@@ -58,6 +60,13 @@ class RosterAnalyzer:
     def _get_owner_name_col(self, df: pd.DataFrame) -> Optional[str]:
         """Find the owner name column in a DataFrame."""
         for col in self.OWNER_NAME_COLUMNS:
+            if col in df.columns:
+                return col
+        return None
+
+    def _get_position_col(self, df: pd.DataFrame) -> Optional[str]:
+        """Find the position column in a DataFrame."""
+        for col in self.POSITION_COLUMNS:
             if col in df.columns:
                 return col
         return None
@@ -128,10 +137,27 @@ class RosterAnalyzer:
         """Analyze roster by position group."""
         analysis = {}
 
+        # Get position column dynamically
+        my_pos_col = self._get_position_col(my_roster)
+        all_pos_col = self._get_position_col(all_rosters)
+
+        if not my_pos_col:
+            print(f"Warning: Could not find position column in my_roster. Available: {list(my_roster.columns)}")
+            # Return empty analysis for all positions
+            for position in self.POSITION_GROUPS:
+                analysis[position] = {
+                    'players': [],
+                    'total_salary': 0,
+                    'avg_salary': 0,
+                    'count': 0,
+                    'projected_war': 0,
+                }
+            return analysis
+
         for position, eligible in self.POSITION_GROUPS.items():
             # My players at this position
             my_players = my_roster[
-                my_roster['position'].str.contains('|'.join(eligible), case=False, na=False)
+                my_roster[my_pos_col].str.contains('|'.join(eligible), case=False, na=False)
             ].copy()
 
             if my_players.empty:
@@ -145,16 +171,25 @@ class RosterAnalyzer:
                 continue
 
             # League players at this position
-            league_players = all_rosters[
-                all_rosters['position'].str.contains('|'.join(eligible), case=False, na=False)
-            ]
+            if all_pos_col:
+                league_players = all_rosters[
+                    all_rosters[all_pos_col].str.contains('|'.join(eligible), case=False, na=False)
+                ]
+            else:
+                league_players = pd.DataFrame()
 
             # Calculate metrics
             my_salary = my_players['salary'].sum() if 'salary' in my_players.columns else 0
-            league_avg_salary = league_players['salary'].mean() if 'salary' in league_players.columns else 0
+            league_avg_salary = league_players['salary'].mean() if 'salary' in league_players.columns and not league_players.empty else 0
+
+            # Build player list with available columns
+            player_cols = ['name', 'salary']
+            if my_pos_col:
+                player_cols.append(my_pos_col)
+            available_cols = [c for c in player_cols if c in my_players.columns]
 
             analysis[position] = {
-                'players': my_players[['name', 'salary', 'position']].to_dict('records') if 'name' in my_players.columns else [],
+                'players': my_players[available_cols].to_dict('records') if available_cols and 'name' in available_cols else [],
                 'total_salary': round(my_salary, 1),
                 'avg_salary': round(my_players['salary'].mean(), 1) if 'salary' in my_players.columns else 0,
                 'count': len(my_players),
@@ -224,13 +259,21 @@ class RosterAnalyzer:
         if standings.empty or not owner_id_col:
             return comparison
 
+        # Get position columns dynamically
+        my_pos_col = self._get_position_col(my_roster)
+        all_pos_col = self._get_position_col(all_rosters)
+
+        if not my_pos_col or not all_pos_col:
+            print(f"Warning: Could not find position column for comparison")
+            return comparison
+
         # Get top 3 teams from standings
         top_teams = standings.head(3)
 
         # Analyze positional differences
         for position, eligible in self.POSITION_GROUPS.items():
             my_players = my_roster[
-                my_roster['position'].str.contains('|'.join(eligible), case=False, na=False)
+                my_roster[my_pos_col].str.contains('|'.join(eligible), case=False, na=False)
             ]
             my_salary = my_players['salary'].sum() if 'salary' in my_players.columns else 0
 
@@ -241,7 +284,7 @@ class RosterAnalyzer:
                 if team_id:
                     team_players = all_rosters[
                         (all_rosters[owner_id_col] == team_id) &
-                        (all_rosters['position'].str.contains('|'.join(eligible), case=False, na=False))
+                        (all_rosters[all_pos_col].str.contains('|'.join(eligible), case=False, na=False))
                     ]
                     top_salaries.append(team_players['salary'].sum() if 'salary' in team_players.columns else 0)
 
@@ -438,10 +481,16 @@ class RosterAnalyzer:
         if all_rosters.empty:
             return pd.DataFrame()
 
+        # Get position column dynamically
+        pos_col = self._get_position_col(all_rosters)
+        if not pos_col:
+            print(f"Warning: Could not find position column. Available: {list(all_rosters.columns)}")
+            return pd.DataFrame()
+
         eligible = self.POSITION_GROUPS.get(position, [position])
 
         position_players = all_rosters[
-            all_rosters['position'].str.contains('|'.join(eligible), case=False, na=False)
+            all_rosters[pos_col].str.contains('|'.join(eligible), case=False, na=False)
         ].copy()
 
         if position_players.empty:

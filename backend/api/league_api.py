@@ -21,6 +21,8 @@ def df_to_json(df, limit=None):
         return []
     if limit:
         df = df.head(limit)
+    # Replace NaN values with None for proper JSON serialization
+    df = df.where(df.notna(), None)
     return df.to_dict(orient='records')
 
 

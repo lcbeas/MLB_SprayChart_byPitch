@@ -632,11 +632,21 @@ function renderSearchResults(players, container, side) {
     container.classList.remove('hidden');
     container.innerHTML = '';
 
-    players.slice(0, 5).forEach(player => {
+    players.slice(0, 8).forEach(player => {
         const item = document.createElement('div');
         item.className = 'search-dropdown-item';
-        item.textContent = `${player.name} (${player.position || 'N/A'})`;
+
+        // Get salary - check various column names
+        const salary = player.current_salary || player.salary || player.avg_salary || 0;
+        const salaryDisplay = salary > 0 ? `$${parseFloat(salary).toFixed(0)}` : 'FA';
+
+        // Check if rostered
+        const ownerDisplay = player.owner_name ? ` - ${player.owner_name}` : '';
+
+        item.textContent = `${player.name} (${player.position || 'N/A'}) ${salaryDisplay}${ownerDisplay}`;
         item.addEventListener('click', () => {
+            // Store salary info with player
+            player.salary = salary;
             addPlayerToTrade(player, side);
             container.classList.add('hidden');
             document.getElementById(`${side}-player-search`).value = '';
@@ -665,10 +675,12 @@ function renderTradePlayers() {
         container.innerHTML = '';
 
         state.tradePlayers[side].forEach((player, idx) => {
+            const salary = player.salary || player.current_salary || player.avg_salary || 0;
+            const salaryDisplay = salary > 0 ? `$${parseFloat(salary).toFixed(0)}` : 'FA';
             container.innerHTML += `
                 <div class="trade-player-item">
-                    <span>${player.name} (${player.position || 'N/A'})</span>
-                    <button class="remove-btn" onclick="removePlayerFromTrade(${idx}, '${side}')">×</button>
+                    <span>${player.name} (${player.position || 'N/A'}) - ${salaryDisplay}</span>
+                    <button class="remove-btn" onclick="removePlayerFromTrade(${idx}, '${side}')">x</button>
                 </div>
             `;
         });
@@ -959,9 +971,9 @@ function renderFreeAgents(result) {
                 <tr>
                     <td>${player.name}</td>
                     <td>${player.position || '-'}</td>
-                    <td>${player.team || '-'}</td>
-                    <td>${formatCurrency(player.avg_value || 0)}</td>
-                    <td>${formatCurrency(player.projected_value || player.avg_value || 0)}</td>
+                    <td>${player.mlb_team || player.team || '-'}</td>
+                    <td>${formatCurrency(player.avg_salary || player.avg_value || 0)}</td>
+                    <td>${formatCurrency(player.projected_value || player.avg_salary || player.avg_value || 0)}</td>
                 </tr>
             `).join('')}
         </tbody>

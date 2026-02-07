@@ -122,17 +122,59 @@ class LineupOptimizer:
         pitching_lineup = self._optimize_pitching_lineup(pitcher_scores, inning_limits)
 
         # Calculate expected points
-        expected_batting = sum(p['expected_points'] for p in batting_lineup.values())
-        expected_pitching = sum(p['expected_points'] for p in pitching_lineup.values())
+        expected_batting = sum(p.get('expected_points', 0) for p in batting_lineup.values())
+        expected_pitching = sum(p.get('expected_points', 0) for p in pitching_lineup.values())
+
+        # Convert lineup dicts to lists for frontend compatibility
+        batting_list = [
+            {
+                'slot': slot,
+                'name': player.get('name', 'Unknown'),
+                'position': player.get('position', player.get('positions', '')),
+                'expected_points': float(player.get('expected_points', 0)),
+                'matchup': player.get('matchup', ''),
+                'matchup_multiplier': float(player.get('matchup_multiplier', 1.0)),
+                'salary': float(player.get('salary', 0)),
+            }
+            for slot, player in batting_lineup.items()
+        ]
+
+        pitching_list = [
+            {
+                'slot': slot,
+                'name': player.get('name', 'Unknown'),
+                'position': player.get('position', player.get('positions', '')),
+                'expected_points': float(player.get('expected_points', 0)),
+                'projected_ip': float(player.get('projected_ip', 0)),
+                'remaining_ip': float(player.get('remaining_ip', 0)) if player.get('remaining_ip') else None,
+                'salary': float(player.get('salary', 0)),
+            }
+            for slot, player in pitching_lineup.items()
+        ]
+
+        bench_list = [
+            {
+                'name': player.get('name', 'Unknown'),
+                'position': player.get('position', player.get('positions', '')),
+                'salary': float(player.get('salary', 0)),
+            }
+            for player in self._get_bench(roster, batting_lineup, pitching_lineup)
+        ]
 
         return {
             'date': date,
-            'batting_lineup': batting_lineup,
-            'pitching_lineup': pitching_lineup,
-            'bench': self._get_bench(roster, batting_lineup, pitching_lineup),
-            'expected_batting_points': round(expected_batting, 1),
-            'expected_pitching_points': round(expected_pitching, 1),
-            'expected_total_points': round(expected_batting + expected_pitching, 1),
+            'batting_lineup': {
+                'lineup': batting_list,
+                'expected_points': round(float(expected_batting), 1),
+            },
+            'pitching_lineup': {
+                'lineup': pitching_list,
+                'expected_points': round(float(expected_pitching), 1),
+            },
+            'bench': bench_list,
+            'expected_batting_points': round(float(expected_batting), 1),
+            'expected_pitching_points': round(float(expected_pitching), 1),
+            'expected_total_points': round(float(expected_batting + expected_pitching), 1),
             'warnings': self._generate_warnings(batting_lineup, pitching_lineup, inning_limits),
         }
 
