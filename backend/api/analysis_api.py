@@ -4,12 +4,43 @@ Analysis API endpoints
 Exposes roster analysis and trade analysis functionality.
 """
 
+import math
 from flask import Blueprint, jsonify, request
 from backend.analysis.roster_analyzer import RosterAnalyzer
 from backend.analysis.trade_analyzer import TradeAnalyzer
 from config import Config
 
 bp = Blueprint('analysis', __name__)
+
+
+def sanitize_for_json(obj):
+    """
+    Recursively sanitize an object for JSON serialization.
+    Converts NaN, Inf to None/safe values.
+    """
+    if obj is None:
+        return None
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    elif isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_for_json(item) for item in obj]
+    elif isinstance(obj, (int, str, bool)):
+        return obj
+    else:
+        # Try to convert numpy types
+        try:
+            if hasattr(obj, 'item'):  # numpy scalar
+                val = obj.item()
+                if isinstance(val, float) and (math.isnan(val) or math.isinf(val)):
+                    return None
+                return val
+        except (ValueError, TypeError):
+            pass
+        return obj
 
 
 def get_roster_analyzer():
@@ -61,7 +92,7 @@ def analyze_roster():
         if 'error' in analysis:
             return jsonify(analysis), 400
 
-        return jsonify(analysis)
+        return jsonify(sanitize_for_json(analysis))
     except Exception as e:
         return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
 
@@ -83,11 +114,11 @@ def get_positional_analysis():
         analyzer = get_roster_analyzer()
         analysis = analyzer.analyze_roster(team_id)
 
-        return jsonify({
+        return jsonify(sanitize_for_json({
             'team_id': team_id,
             'positional_analysis': analysis.get('positional_analysis', {}),
             'weaknesses': analysis.get('weaknesses', []),
-        })
+        }))
     except Exception as e:
         return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
 
@@ -147,10 +178,10 @@ def get_roster_score():
         analyzer = get_roster_analyzer()
         analysis = analyzer.analyze_roster(team_id)
 
-        return jsonify({
+        return jsonify(sanitize_for_json({
             'team_id': team_id,
             'roster_score': analysis.get('roster_score', {}),
-        })
+        }))
     except Exception as e:
         return jsonify({'error': f'Scoring failed: {str(e)}'}), 500
 
@@ -172,12 +203,12 @@ def get_roster_recommendations():
         analyzer = get_roster_analyzer()
         analysis = analyzer.analyze_roster(team_id)
 
-        return jsonify({
+        return jsonify(sanitize_for_json({
             'team_id': team_id,
             'recommendations': analysis.get('recommendations', []),
             'weaknesses': analysis.get('weaknesses', []),
             'value_opportunities': analysis.get('value_opportunities', {}),
-        })
+        }))
     except Exception as e:
         return jsonify({'error': f'Failed to get recommendations: {str(e)}'}), 500
 

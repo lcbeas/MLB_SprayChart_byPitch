@@ -4,6 +4,7 @@ ML API endpoints
 Exposes lineup optimization, player value prediction, and model training functionality.
 """
 
+import math
 from flask import Blueprint, jsonify, request
 from backend.ml.models.lineup_optimizer import LineupOptimizer
 from backend.ml.models.player_value import PlayerValueModel
@@ -11,6 +12,36 @@ from config import Config
 import pandas as pd
 
 bp = Blueprint('ml', __name__)
+
+
+def sanitize_for_json(obj):
+    """
+    Recursively sanitize an object for JSON serialization.
+    Converts NaN, Inf to None/safe values.
+    """
+    if obj is None:
+        return None
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    elif isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_for_json(item) for item in obj]
+    elif isinstance(obj, (int, str, bool)):
+        return obj
+    else:
+        # Try to convert numpy types
+        try:
+            if hasattr(obj, 'item'):  # numpy scalar
+                val = obj.item()
+                if isinstance(val, float) and (math.isnan(val) or math.isinf(val)):
+                    return None
+                return val
+        except (ValueError, TypeError):
+            pass
+        return obj
 
 # Singleton instances (to avoid reloading models on each request)
 _lineup_optimizer = None
@@ -91,7 +122,7 @@ def optimize_lineup():
             date=data.get('date')
         )
 
-        return jsonify(result)
+        return jsonify(sanitize_for_json(result))
     except Exception as e:
         return jsonify({'error': f'Lineup optimization failed: {str(e)}'}), 500
 
@@ -132,10 +163,10 @@ def suggest_lineup_changes():
             matchups=data['matchups']
         )
 
-        return jsonify({
+        return jsonify(sanitize_for_json({
             'suggestions': suggestions,
             'count': len(suggestions)
-        })
+        }))
     except Exception as e:
         return jsonify({'error': f'Failed to generate suggestions: {str(e)}'}), 500
 
