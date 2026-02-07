@@ -914,20 +914,66 @@ tbody tr:last-child td {
     border: 1px solid var(--border-default);
     border-radius: 8px;
     box-shadow: var(--shadow-lg);
-    max-height: 200px;
+    max-height: 320px;
     overflow-y: auto;
     z-index: 50;
+    width: 100%;
+    min-width: 280px;
 }
 
 .search-dropdown-item {
-    padding: 0.75rem 1rem;
+    padding: 0.6rem 1rem;
     cursor: pointer;
     color: var(--text-primary);
     transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.search-dropdown-item:last-child {
+    border-bottom: none;
 }
 
 .search-dropdown-item:hover {
     background: var(--bg-hover);
+}
+
+.search-dropdown-item .player-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    flex-shrink: 0;
+}
+
+.search-dropdown-item .player-pos {
+    color: var(--accent-cyan);
+    font-size: 0.85em;
+    background: rgba(57, 197, 207, 0.15);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.search-dropdown-item .player-salary {
+    color: var(--accent-secondary);
+    font-weight: 600;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.search-dropdown-item .player-owner {
+    color: var(--text-muted);
+    font-size: 0.8em;
+    width: 100%;
+    margin-top: 0.2rem;
+}
+
+.search-dropdown-item.no-results {
+    color: var(--text-muted);
+    font-style: italic;
+    justify-content: center;
 }
 
 /* Trade Result */

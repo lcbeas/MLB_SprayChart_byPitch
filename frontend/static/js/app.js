@@ -632,21 +632,42 @@ function renderSearchResults(players, container, side) {
     container.classList.remove('hidden');
     container.innerHTML = '';
 
-    players.slice(0, 8).forEach(player => {
+    players.slice(0, 10).forEach(player => {
         const item = document.createElement('div');
         item.className = 'search-dropdown-item';
 
         // Get salary - check various column names
         const salary = player.current_salary || player.salary || player.avg_salary || 0;
-        const salaryDisplay = salary > 0 ? `$${parseFloat(salary).toFixed(0)}` : 'FA';
+        const salaryNum = parseFloat(salary) || 0;
+        const salaryDisplay = salaryNum > 0 ? `$${salaryNum.toFixed(0)}` : 'FA';
 
-        // Check if rostered
-        const ownerDisplay = player.owner_name ? ` - ${player.owner_name}` : '';
+        // Format position nicely
+        const position = player.position || player.positions || '';
+        const posDisplay = position ? position.split('/').slice(0, 2).join('/') : '';
 
-        item.textContent = `${player.name} (${player.position || 'N/A'}) ${salaryDisplay}${ownerDisplay}`;
+        // Check if rostered and format owner name
+        const isRostered = player.is_rostered || player.owner_name;
+        const ownerName = player.owner_name || '';
+
+        // Build display with nice formatting
+        // Format: "Shohei Ohtani (SP/DH) - $54" or "Shohei Ohtani (SP/DH) - $54 [Team Name]"
+        let displayText = player.name;
+        if (posDisplay) {
+            displayText += ` (${posDisplay})`;
+        }
+        displayText += ` - ${salaryDisplay}`;
+        if (ownerName) {
+            displayText += ` [${ownerName}]`;
+        }
+
+        item.innerHTML = `<span class="player-name">${player.name}</span>` +
+            (posDisplay ? `<span class="player-pos">${posDisplay}</span>` : '') +
+            `<span class="player-salary">${salaryDisplay}</span>` +
+            (ownerName ? `<span class="player-owner">${ownerName}</span>` : '');
+
         item.addEventListener('click', () => {
             // Store salary info with player
-            player.salary = salary;
+            player.salary = salaryNum;
             addPlayerToTrade(player, side);
             container.classList.add('hidden');
             document.getElementById(`${side}-player-search`).value = '';
@@ -655,7 +676,7 @@ function renderSearchResults(players, container, side) {
     });
 
     if (players.length === 0) {
-        container.innerHTML = '<div class="search-dropdown-item">No players found</div>';
+        container.innerHTML = '<div class="search-dropdown-item no-results">No players found</div>';
     }
 }
 
